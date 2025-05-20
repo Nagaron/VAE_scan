@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>QR → Google Form Submit with Autofocus</title>
+  <title>QR → Google Form Submit with Autofocus & Toggle</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     body {
@@ -57,11 +57,10 @@
   </style>
 </head>
 <body>
-  <h2>QR → Auto Submit to Google Form with Autofocus</h2>
+  <h2>QR → Auto Submit to Google Form with Autofocus & Toggle</h2>
 
   <div id="controls">
-    <button id="startBtn">📷 Start Scanner</button>
-    <button id="stopBtn" disabled>🚫 Stop Scanner</button>
+    <button id="toggleBtn">📷 Start Camera</button>
     <button id="submitBtn">📤 Submit to Form</button>
     <button id="resetBtn">🔄 Reset</button>
   </div>
@@ -76,6 +75,7 @@
   <script>
     const qrScanner = new Html5Qrcode("reader");
     const collectedData = {};
+    let isScanning = false;
 
     function updateDisplay() {
       document.getElementById("dataDisplay").textContent = JSON.stringify(
@@ -93,9 +93,7 @@
     async function startScanner() {
       try {
         await qrScanner.start(
-          { 
-            facingMode: "environment"
-          },
+          { facingMode: "environment" },
           {
             fps: 10,
             qrbox: { width: 300, height: 300 },
@@ -109,8 +107,8 @@
             console.warn("Scan error:", err);
           }
         );
-        startBtn.disabled = true;
-        stopBtn.disabled = false;
+        isScanning = true;
+        toggleBtn.textContent = "🚫 Stop Camera";
       } catch (err) {
         console.error("Scanner start failed:", err);
       }
@@ -119,12 +117,20 @@
     async function stopScanner() {
       try {
         await qrScanner.stop();
-        startBtn.disabled = false;
-        stopBtn.disabled = true;
+        isScanning = false;
+        toggleBtn.textContent = "📷 Start Camera";
       } catch (err) {
         console.error("Scanner stop failed:", err);
       }
     }
+
+    toggleBtn.addEventListener("click", () => {
+      if (isScanning) {
+        stopScanner();
+      } else {
+        startScanner();
+      }
+    });
 
     function resetAll() {
       for (const key in collectedData) {
@@ -148,21 +154,17 @@
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: params.toString()
         });
-        alert("✓ Submitted to Google Form!");
+        // Removed alert here for no confirmation
         resetAll();
       } catch (e) {
         console.error("Form submission error:", e);
-        alert("✗ Submission failed.");
       }
     }
 
-    const startBtn = document.getElementById("startBtn");
-    const stopBtn = document.getElementById("stopBtn");
+    const toggleBtn = document.getElementById("toggleBtn");
     const submitBtn = document.getElementById("submitBtn");
     const resetBtn = document.getElementById("resetBtn");
 
-    startBtn.addEventListener("click", startScanner);
-    stopBtn.addEventListener("click", stopScanner);
     submitBtn.addEventListener("click", submitForm);
     resetBtn.addEventListener("click", resetAll);
   </script>
