@@ -28,6 +28,15 @@
       padding: 0 0.75em;
       flex: 1 1 100%;
     }
+    #dataDisplay {
+      background: #eee;
+      padding: 1em;
+      border-radius: 5px;
+      margin-bottom: 1em;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: monospace;
+    }
     #reader {
       width: 100%;
       aspect-ratio: 1 / 1;
@@ -39,11 +48,6 @@
       object-fit: cover;
       width: 100% !important;
       height: 100% !important;
-    }
-    #output {
-      background: #eee;
-      padding: 1em;
-      border-radius: 5px;
     }
     @media (min-width: 600px) {
       #controls button {
@@ -59,17 +63,13 @@
 <body>
   <h2>QR → Auto Submit to Google Form with Autofocus & Toggle</h2>
 
-  <div id="controls">
-    <button id="toggleBtn">📷 Start Camera</button>
-    <button id="submitBtn">📤 Submit to Form</button>
-    <button id="resetBtn">🔄 Reset</button>
-  </div>
+  <div id="dataDisplay">{}</div>
 
   <div id="reader"></div>
 
-  <div id="output">
-    <h3>Scanned Data:</h3>
-    <pre id="dataDisplay">{}</pre>
+  <div id="controls">
+    <button id="toggleBtn">📷 Start Camera</button>
+    <button id="submitBtn">📤 Submit to Form</button>
   </div>
 
   <script>
@@ -146,7 +146,7 @@
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: params.toString()
         });
-        // No confirmation alert
+        // no alert confirmation
         resetAll();
       } catch (e) {
         console.error("Form submission error:", e);
@@ -155,7 +155,6 @@
 
     const toggleBtn = document.getElementById("toggleBtn");
     const submitBtn = document.getElementById("submitBtn");
-    const resetBtn = document.getElementById("resetBtn");
 
     toggleBtn.addEventListener("click", () => {
       if (isScanning) {
@@ -166,7 +165,6 @@
     });
 
     submitBtn.addEventListener("click", submitForm);
-    resetBtn.addEventListener("click", resetAll);
   </script>
 </body>
 </html>
