@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>QR → Google Form Submit</title>
+  <title>QR → Google Form Submit with Autofocus</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
     body {
@@ -56,7 +56,7 @@
   </style>
 </head>
 <body>
-  <h2>QR → Auto Submit to Google Form</h2>
+  <h2>QR → Auto Submit to Google Form with Autofocus</h2>
 
   <div id="controls">
     <button id="startBtn">📷 Start Scanner</button>
@@ -92,10 +92,21 @@
     async function startScanner() {
       try {
         await qrScanner.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
+          { 
+            facingMode: "environment"
+          },
+          {
+            fps: 10,
+            qrbox: { width: 300, height: 300 },
+            videoConstraints: {
+              facingMode: "environment",
+              focusMode: "continuous" // Request continuous autofocus if supported
+            }
+          },
           handleScannedData,
-          () => {}
+          (err) => {
+            console.warn("Scan error:", err);
+          }
         );
         startBtn.disabled = true;
         stopBtn.disabled = false;
