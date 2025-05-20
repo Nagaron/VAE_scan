@@ -23,8 +23,9 @@
       min-width: 100px;
     }
     #controls button {
+      height: 80px;
       font-size: 1em;
-      padding: 0.75em;
+      padding: 0 0.75em;
       flex: 1 1 100%;
     }
     #reader {
@@ -100,7 +101,7 @@
             qrbox: { width: 300, height: 300 },
             videoConstraints: {
               facingMode: "environment",
-              focusMode: "continuous" // Request continuous autofocus if supported
+              focusMode: "continuous"
             }
           },
           handleScannedData,
