@@ -1,96 +1,172 @@
-<script>
-  const qrScanner = new Html5Qrcode("reader");
-  const collectedData = {};
-  let isScanning = false;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>QR → Google Form Submit with Autofocus & Toggle</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 1em;
+      margin: 0;
+    }
+    #controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5em;
+      margin-bottom: 1em;
+      align-items: center;
+    }
+    #controls > * {
+      flex: 1 1 auto;
+      min-width: 100px;
+    }
+    #controls button {
+      height: 80px;
+      font-size: 1em;
+      padding: 0 0.75em;
+      flex: 1 1 100%;
+    }
+    #reader {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      margin-bottom: 1em;
+      border: 1px solid #ccc;
+      position: relative;
+    }
+    #reader video {
+      object-fit: cover;
+      width: 100% !important;
+      height: 100% !important;
+    }
+    #output {
+      background: #eee;
+      padding: 1em;
+      border-radius: 5px;
+    }
+    @media (min-width: 600px) {
+      #controls button {
+        flex: 1 1 auto;
+        min-width: 120px;
+      }
+      #controls {
+        gap: 1em;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h2>QR → Auto Submit to Google Form with Autofocus & Toggle</h2>
 
-  function updateDisplay() {
-    document.getElementById("dataDisplay").textContent = JSON.stringify(
-      collectedData,
-      null,
-      2
-    );
-  }
+  <div id="controls">
+    <button id="toggleBtn">📷 Start Camera</button>
+    <button id="submitBtn">📤 Submit to Form</button>
+    <button id="resetBtn">🔄 Reset</button>
+  </div>
 
-  function handleScannedData(text) {
-    collectedData.code = text.trim();
-    updateDisplay();
-  }
+  <div id="reader"></div>
 
-  async function startScanner() {
-    try {
-      await qrScanner.start(
-        { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 300, height: 300 },
-          videoConstraints: {
-            facingMode: "environment",
-            focusMode: "continuous"
-          }
-        },
-        handleScannedData,
-        (err) => {
-          console.warn("Scan error:", err);
-        }
+  <div id="output">
+    <h3>Scanned Data:</h3>
+    <pre id="dataDisplay">{}</pre>
+  </div>
+
+  <script>
+    const qrScanner = new Html5Qrcode("reader");
+    const collectedData = {};
+    let isScanning = false;
+
+    function updateDisplay() {
+      document.getElementById("dataDisplay").textContent = JSON.stringify(
+        collectedData,
+        null,
+        2
       );
-      isScanning = true;
-      toggleBtn.textContent = "🚫 Stop Camera";
-    } catch (err) {
-      console.error("Scanner start failed:", err);
     }
-  }
 
-  async function stopScanner() {
-    try {
-      await qrScanner.stop();
-      isScanning = false;
-      toggleBtn.textContent = "📷 Start Camera";
-    } catch (err) {
-      console.error("Scanner stop failed:", err);
+    function handleScannedData(text) {
+      collectedData.code = text.trim();
+      updateDisplay();
     }
-  }
 
-  function resetAll() {
-    for (const key in collectedData) {
-      delete collectedData[key];
+    async function startScanner() {
+      try {
+        await qrScanner.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: { width: 300, height: 300 },
+            videoConstraints: {
+              facingMode: "environment",
+              focusMode: "continuous"
+            }
+          },
+          handleScannedData,
+          (err) => {
+            console.warn("Scan error:", err);
+          }
+        );
+        isScanning = true;
+        toggleBtn.textContent = "🚫 Stop Camera";
+      } catch (err) {
+        console.error("Scanner start failed:", err);
+      }
     }
-    updateDisplay();
-  }
 
-  async function submitForm() {
-    const postUrl =
-      "https://docs.google.com/forms/d/e/1FAIpQLSfbiGFjkUEWqpaSAbgbX1W0ssB-PEEONaMfW1qNBrgmglQILg/formResponse";
+    async function stopScanner() {
+      try {
+        await qrScanner.stop();
+        isScanning = false;
+        toggleBtn.textContent = "📷 Start Camera";
+      } catch (err) {
+        console.error("Scanner stop failed:", err);
+      }
+    }
 
-    const params = new URLSearchParams({
-      "entry.830144596": collectedData.code || ""
+    function resetAll() {
+      for (const key in collectedData) {
+        delete collectedData[key];
+      }
+      updateDisplay();
+    }
+
+    async function submitForm() {
+      const postUrl =
+        "https://docs.google.com/forms/d/e/1FAIpQLSfbiGFjkUEWqpaSAbgbX1W0ssB-PEEONaMfW1qNBrgmglQILg/formResponse";
+
+      const params = new URLSearchParams({
+        "entry.830144596": collectedData.code || ""
+      });
+
+      try {
+        await fetch(postUrl, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: params.toString()
+        });
+        // No confirmation alert
+        resetAll();
+      } catch (e) {
+        console.error("Form submission error:", e);
+      }
+    }
+
+    const toggleBtn = document.getElementById("toggleBtn");
+    const submitBtn = document.getElementById("submitBtn");
+    const resetBtn = document.getElementById("resetBtn");
+
+    toggleBtn.addEventListener("click", () => {
+      if (isScanning) {
+        stopScanner();
+      } else {
+        startScanner();
+      }
     });
 
-    try {
-      await fetch(postUrl, {
-        method: "POST",
-        mode: "no-cors",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: params.toString()
-      });
-      // No alert for confirmation
-      resetAll();
-    } catch (e) {
-      console.error("Form submission error:", e);
-    }
-  }
-
-  const toggleBtn = document.getElementById("toggleBtn");
-  const submitBtn = document.getElementById("submitBtn");
-  const resetBtn = document.getElementById("resetBtn");
-
-  toggleBtn.addEventListener("click", () => {
-    if (isScanning) {
-      stopScanner();
-    } else {
-      startScanner();
-    }
-  });
-
-  submitBtn.addEventListener("click", submitForm);
-  resetBtn.addEventListener("click", resetAll);
-</script>
+    submitBtn.addEventListener("click", submitForm);
+    resetBtn.addEventListener("click", resetAll);
+  </script>
+</body>
+</html>
