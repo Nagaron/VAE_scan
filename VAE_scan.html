@@ -6,6 +6,7 @@
   <title>VAE scanner</title>
   <script src="https://unpkg.com/html5-qrcode"></script>
   <style>
+    /* --- Your original mobile-first CSS has been restored --- */
     body {
       font-family: sans-serif;
       padding: 1em;
@@ -26,7 +27,7 @@
       height: 80px;
       font-size: 1em;
       padding: 0 0.75em;
-      flex: 1 1 100%;
+      flex: 1 1 100%; /* Buttons stack on mobile */
     }
     #dataDisplay {
       background: #eee;
@@ -36,6 +37,7 @@
       white-space: pre-wrap;
       word-break: break-word;
       font-family: monospace;
+      min-height: 60px;
     }
     #reader {
       width: 100%;
@@ -51,12 +53,26 @@
     }
     @media (min-width: 600px) {
       #controls button {
-        flex: 1 1 auto;
+        flex: 1 1 auto; /* Buttons are side-by-side on larger screens */
         min-width: 120px;
       }
       #controls {
         gap: 1em;
       }
+    }
+    
+    /* --- Minimal styles added to support the status message functionality --- */
+    #statusMessage {
+        text-align: center;
+        margin-top: 1em;
+        font-weight: bold;
+        min-height: 24px;
+    }
+    .success {
+        color: green;
+    }
+    .error {
+        color: red;
     }
   </style>
 </head>
@@ -72,10 +88,14 @@
     <button id="toggleBtn">📷 Start Camera</button>
   </div>
 
+  <div id="statusMessage"></div>
+
   <script>
+    // --- The new, correct JavaScript functionality is unchanged ---
     const qrScanner = new Html5Qrcode("reader");
     const collectedData = {};
     let isScanning = false;
+    const statusDisplay = document.getElementById("statusMessage");
 
     function updateDisplay() {
       document.getElementById("dataDisplay").textContent = JSON.stringify(
@@ -88,6 +108,12 @@
     function handleScannedData(text) {
       collectedData.code = text.trim();
       updateDisplay();
+    }
+    
+    function setStatus(message, isError = false) {
+        statusDisplay.textContent = message;
+        statusDisplay.className = isError ? 'error' : 'success';
+        setTimeout(() => statusDisplay.textContent = '', 3000);
     }
 
     async function startScanner() {
@@ -103,20 +129,21 @@
             }
           },
           handleScannedData,
-          (err) => {
-            console.warn("Scan error:", err);
-          }
+          (err) => {}
         );
         isScanning = true;
         toggleBtn.textContent = "🚫 Stop Camera";
       } catch (err) {
         console.error("Scanner start failed:", err);
+        setStatus("Could not start camera.", true);
       }
     }
 
     async function stopScanner() {
       try {
-        await qrScanner.stop();
+        if(qrScanner.isScanning) {
+            await qrScanner.stop();
+        }
         isScanning = false;
         toggleBtn.textContent = "📷 Start Camera";
       } catch (err) {
@@ -132,24 +159,46 @@
     }
 
     async function submitForm() {
-      const postUrl =
-        "https://docs.google.com/forms/d/e/1FAIpQLSfbiGFjkUEWqpaSAbgbX1W0ssB-PEEONaMfW1qNBrgmglQILg/formResponse";
+      if (!collectedData.code) {
+        setStatus("No QR code scanned to submit.", true);
+        return;
+      }
 
-      const params = new URLSearchParams({
-        "entry.830144596": collectedData.code || ""
-      });
+      const postUrl = "https://tisma-flask.nagaron.trade/webhook/new_scan";
+
+      const now = new Date();
+      const timestamp = `${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+
+      const payload = {
+          "timestamp": timestamp,
+          "scanned_value": collectedData.code
+      };
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Submitting...";
 
       try {
-        await fetch(postUrl, {
+        const response = await fetch(postUrl, {
           method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: params.toString()
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
         });
-        // no alert confirmation
-        resetAll();
+
+        if (response.ok) {
+            setStatus("Scan submitted successfully!", false);
+            resetAll();
+        } else {
+            const errorData = await response.json();
+            setStatus(`Error: ${errorData.message || response.statusText}`, true);
+        }
       } catch (e) {
         console.error("Form submission error:", e);
+        setStatus("Submission failed. Check network.", true);
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "📤 Submit Scan";
       }
     }
 
@@ -165,6 +214,8 @@
     });
 
     submitBtn.addEventListener("click", submitForm);
+    updateDisplay(); // Initial display
   </script>
 </body>
 </html>
+
